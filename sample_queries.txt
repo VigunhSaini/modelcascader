@@ -1,0 +1,41 @@
+# Sample queries for the cascade router evaluation harness.
+# Lines starting with # are comments and are ignored.
+# One query per line.
+# These span a range of complexities to sanity-check tier distribution
+# before going live with real traffic.
+
+# ── Tier 1 candidates (simple / factual / short-answer) ──────────────────────
+What is the capital of France?
+What does HTTP stand for?
+Convert 100 Fahrenheit to Celsius.
+Who wrote Romeo and Juliet?
+What is the chemical symbol for gold?
+How many days are in a leap year?
+What is 17 multiplied by 13?
+Name three primary colours.
+What year did World War II end?
+What is the boiling point of water in Celsius?
+
+# ── Tier 2 candidates (moderate reasoning / multi-step / explanation) ─────────
+Explain the difference between supervised and unsupervised machine learning.
+Summarise the key provisions of the GDPR in three paragraphs.
+Write a Python function that merges two sorted lists into one sorted list.
+What are the main causes of the 2008 financial crisis?
+Describe the steps involved in training a neural network from scratch.
+Compare and contrast REST and GraphQL APIs for a microservices architecture.
+Explain how HTTPS certificates work and why they matter for security.
+What is the difference between TCP and UDP, and when would you use each?
+Draft a professional email declining a job offer politely.
+Outline the pros and cons of using a relational database vs. a document store.
+
+# ── Tier 3 candidates (complex / multi-domain / deep reasoning) ───────────────
+Write a comprehensive technical design document for a distributed rate-limiting system that handles 100k requests per second, covers consistency guarantees, failure modes, and Kubernetes deployment strategy.
+Analyse the geopolitical implications of the Belt and Road Initiative for South-East Asian economies over the next decade, citing economic dependency risks and sovereignty concerns.
+Implement a thread-safe LRU cache in Python with O(1) get and put, explain the design choices, and provide unit tests covering edge cases.
+Given a dataset of e-commerce transactions, describe a full machine learning pipeline to detect fraudulent transactions in real time, including feature engineering, model selection, and monitoring strategy.
+Explain the proof of Gödel's first incompleteness theorem at a level suitable for a computer science graduate student, including the key steps of Gödel numbering and diagonalisation.
+You are a senior software architect. Review the following system design for a real-time collaborative document editor and identify all potential race conditions, scalability bottlenecks, and proposed mitigations: [assume a detailed architecture description follows].
+Compare the philosophical positions of Kant, Hume, and Locke on the nature of causation and explain how each position influenced later developments in the philosophy of science.
+Write a complete, production-ready Rust implementation of a B-tree with insertion, deletion, and range-query support, with inline documentation and a test suite.
+Provide a step-by-step legal analysis of whether an AI-generated work qualifies for copyright protection under US law, UK law, and EU law, highlighting key differences.
+Design a multi-region active-active database architecture for a fintech application requiring <100ms latency globally, ACID transactions, and zero data loss on regional failure.

@@ -1,0 +1,134 @@
+# ============================================================
+# Three-Tier Model Cascade Router — Configuration
+# ============================================================
+#
+# This file is the single source of truth for all routing knobs.
+# No values here are hardcoded in application code.
+#
+# CURRENT MODEL TRIO (as of 2026-07-23)
+# ──────────────────────────────────────
+#   Tier 1 — Small  : Llama 3.3 70B Versatile  (provider: groq)
+#   Tier 2 — Medium : Gemini 2.5 Flash          (provider: google)
+#   Tier 3 — Large  : Gemini 3.5 Flash          (provider: google)
+#
+# DEPRECATED MODEL IDs (do not reuse)
+# ────────────────────────────────────
+#   llama-3.1-70b-versatile — deprecated by Groq on 2025-01-24; use llama-3.3-70b-versatile
+#   gpt-3.5-turbo / gpt-4o-mini / gpt-4o — old GPT trio, no longer used
+#
+# IMPORTANT — GATEKEEPER MODEL PAIRS
+# ------------------------------------
+# Each gatekeeper must be configured with the actual model pair that
+# represents the decision it is making:
+#
+#   Gatekeeper 1: "Is this query simple enough for Tier 1 (Small)?"
+#                 → weak_model  = your Tier 1 model
+#                 → strong_model = your Tier 2 model
+#
+#   Gatekeeper 2: "Of queries that passed G1, does this need Tier 3?"
+#                 → weak_model  = your Tier 2 model
+#                 → strong_model = your Tier 3 model
+#
+# Never copy-paste the same pair into both gatekeepers — they would ask
+# the same question and produce identical scores for every query.
+#
+# ROUTER TYPE NOTE
+# ----------------
+# The "bert" router's score is purely query-complexity-based and does NOT
+# use weak_model/strong_model at all (the classifier ignores that field).
+# Two bert gatekeepers with different model pairs still return identical
+# scores for the same query. The model pair fields are retained for
+# documentation intent and for when you switch to "mf".
+#
+# With bert: G2_threshold MUST be > G1_threshold (both cut the same score
+# axis). Calibrate G2 at a lower --strong-model-pct than G1 to guarantee
+# this ordering.
+#
+# WHEN TO RECALIBRATE
+# --------------------
+# Recalibrate from scratch whenever any tier's model changes. The steps are:
+#   1. Decide fresh what escalation percentages make sense for the new trio
+#      (based on each model's real capability level — do not inherit old %s).
+#   2. Run calibration CLI for G1 on your full query sample.
+#   3. Run calibration CLI for G2 on G1's escalated subset only.
+#   4. Verify G2_threshold > G1_threshold still holds.
+#   5. Re-run eval/evaluate.py end-to-end before deploying.
+#
+# CALIBRATION COMMANDS (run offline, once per gatekeeper):
+#   python -m routellm.calibrate_threshold --routers bert --strong-model-pct <pct>
+
+# ── General routing behaviour ─────────────────────────────────────────────────
+routing:
+  timeout_seconds: 10.0
+  fail_safe: escalate
+
+# ── Gatekeeper 1 (coarse gate) ────────────────────────────────────────────────
+# Decision: "Is this query simple enough for Tier 1 (Llama 3.3 70B), or escalate?"
+#
+# Capability rationale for G1 threshold:
+#   Llama 3.3 70B Versatile is a strong open-source model (roughly GPT-4o-mini to
+#   low-GPT-4o range). It handles factual Q&A, basic coding, short explanations,
+#   and most medium tasks (GDPR summary, merge-sort, TCP vs UDP explanations)
+#   competently. It struggles with deep multi-domain reasoning, comprehensive
+#   system design docs, formal proofs, and multi-region ACID architecture.
+#   Estimated ~55% of typical mixed traffic can stay at Tier 1.
+#   → Calibrated at --strong-model-pct 0.45 (45% escalation rate).
+gatekeeper_1:
+  router: bert
+  # Calibrated: bert router, --strong-model-pct 0.45, Arena distribution.
+  # Rationale: Llama 3.3 70B handles ~55% of mixed traffic; 45% escalates.
+  # Command: python -m routellm.calibrate_threshold --routers bert --strong-model-pct 0.45
+  # Replace with a value calibrated on your own traffic for production use.
+  threshold: 0.42013
+  # Model pair documents the G1 decision (Tier 1 vs Tier 2).
+  # With "bert" router this has no effect on scores, but matters if switching to "mf".
+  weak_model: "llama-3.3-70b-versatile"    # Tier 1 — Small (Groq)
+  strong_model: "gemini-2.5-flash"          # Tier 2 — Medium (Google)
+
+# ── Gatekeeper 2 (fine gate) ──────────────────────────────────────────────────
+# Decision: "Of escalated queries, does this one need Tier 3 (Gemini 3.5 Flash)?"
+#
+# Capability rationale for G2 threshold:
+#   Gemini 2.5 Flash is highly capable and handles most escalated traffic well.
+#   The 2.5→3.5 Flash capability gap is narrower than the old GPT-4o-mini→GPT-4o
+#   gap. Only the hardest ~25% of already-escalated queries (deep formal reasoning,
+#   complex multi-system design) need Gemini 3.5 Flash.
+#   → Calibrated at --strong-model-pct 0.25 of escalated traffic.
+#   IMPORTANT: G2_threshold MUST be > G1_threshold for Tier 2 to be reachable
+#   when using the bert router (shared score axis). Calibrate G2 at a lower
+#   --strong-model-pct than G1 to guarantee this ordering.
+gatekeeper_2:
+  router: bert
+  # Calibrated: bert router, --strong-model-pct 0.25, Arena distribution.
+  # Rationale: Gemini 2.5 Flash handles ~75% of escalated traffic; 25% goes to 3.5 Flash.
+  # G2_threshold (0.48456) > G1_threshold (0.42013) -- ordering verified. ✅
+  # Command: python -m routellm.calibrate_threshold --routers bert --strong-model-pct 0.25
+  # Replace with a value calibrated on G1's escalated subset of your own traffic.
+  threshold: 0.48456
+  # Model pair documents the G2 decision (Tier 2 vs Tier 3).
+  weak_model: "gemini-2.5-flash"    # Tier 2 — Medium (Google)
+  strong_model: "gemini-3.5-flash"  # Tier 3 — Large (Google)
+
+# ── Backend tier definitions ──────────────────────────────────────────────────
+tiers:
+  tier_1:
+    provider: groq
+    model: llama-3.3-70b-versatile
+    label: "Small"
+
+  tier_2:
+    provider: google
+    model: gemini-2.5-flash
+    label: "Medium"
+
+  tier_3:
+    provider: google
+    model: gemini-3.5-flash
+    label: "Large"
+
+# ── Telemetry / logging ───────────────────────────────────────────────────────
+telemetry:
+  log_file: logs/routing_telemetry.jsonl
+  max_bytes: 10485760    # 10 MB
+  backup_count: 5
+  console_level: INFO

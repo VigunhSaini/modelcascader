@@ -1,0 +1,32 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables (NEVER COMMIT API KEYS)
+.env
+.env.*
+
+# Application Logs (telemetry outputs)
+logs/
+*.log
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+modelcascader.egg-info/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

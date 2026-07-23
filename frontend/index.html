@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cascade Router — Test UI</title>
+  <style>
+    /* ── Reset + base ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --border:    #2e3147;
+      --text:      #e2e4f0;
+      --muted:     #7b80a0;
+      --accent:    #6c8ef7;
+
+      --t1-bg:     #0d2e1a;
+      --t1-border: #1a5c34;
+      --t1-text:   #4ade80;
+
+      --t2-bg:     #2a1e00;
+      --t2-border: #7a5200;
+      --t2-text:   #fbbf24;
+
+      --t3-bg:     #2a0a0a;
+      --t3-border: #7c1a1a;
+      --t3-text:   #f87171;
+
+      --err-bg:    #1f0a0a;
+      --err-border:#7c1a1a;
+      --err-text:  #f87171;
+
+      --radius: 8px;
+      --mono: "JetBrains Mono", "Fira Mono", "Cascadia Code", ui-monospace, monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────────────── */
+    .page {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+
+    header { margin-bottom: 2rem; }
+    header h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    header p {
+      color: var(--muted);
+      margin-top: .35rem;
+      font-size: 13px;
+    }
+
+    /* ── Input card ───────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: .5rem;
+    }
+
+    textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.55;
+      padding: .75rem 1rem;
+      resize: vertical;
+      min-height: 100px;
+      transition: border-color .15s;
+      font-family: inherit;
+    }
+    textarea:focus { outline: none; border-color: var(--accent); }
+
+    .actions { display: flex; gap: .75rem; margin-top: .9rem; align-items: center; }
+
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: .55rem 1.3rem;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    button:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+    button:active:not(:disabled) { transform: translateY(0); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    .btn-clear {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .btn-clear:hover:not(:disabled) { color: var(--text); border-color: var(--muted); }
+
+    /* ── Spinner ──────────────────────────────────────────────────────── */
+    .spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border: 2.5px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin-left: .25rem;
+    }
+    .spinner.active { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status-text {
+      color: var(--muted);
+      font-size: 12px;
+      display: none;
+    }
+    .status-text.active { display: inline; }
+
+    /* ── Results area ─────────────────────────────────────────────────── */
+    #results { display: none; }
+    #results.visible { display: block; }
+
+    /* ── Tier badge ───────────────────────────────────────────────────── */
+    .tier-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      padding: .4rem .9rem;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: .04em;
+      border: 1.5px solid;
+    }
+    .tier-badge.tier1 { background: var(--t1-bg); border-color: var(--t1-border); color: var(--t1-text); }
+    .tier-badge.tier2 { background: var(--t2-bg); border-color: var(--t2-border); color: var(--t2-text); }
+    .tier-badge.tier3 { background: var(--t3-bg); border-color: var(--t3-border); color: var(--t3-text); }
+
+    .tier-badge .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0;
+    }
+
+    .model-chip {
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--muted);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: .2rem .55rem;
+    }
+
+    /* ── Routing decision grid ────────────────────────────────────────── */
+    .routing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .75rem;
+      margin-bottom: 1rem;
+    }
+    @media (max-width: 560px) { .routing-grid { grid-template-columns: 1fr; } }
+
+    .gate-cell {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: .85rem 1rem;
+    }
+    .gate-cell .gate-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      margin-bottom: .45rem;
+    }
+    .gate-cell .score-row {
+      display: flex;
+      align-items: baseline;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+    .gate-cell .score-val {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .gate-cell .score-threshold {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+    .gate-cell .decision-chip {
+      display: inline-block;
+      margin-top: .4rem;
+      font-size: 11px;
+      font-weight: 700;
+      padding: .15rem .5rem;
+      border-radius: 4px;
+    }
+    .chip-pass  { background: #0d2e1a; color: #4ade80; }
+    .chip-stop  { background: #1a2f1a; color: #4ade80; }
+    .chip-skip  { background: #1a1d27; color: var(--muted); border: 1px dashed var(--border); }
+
+    /* ── Latency row ──────────────────────────────────────────────────── */
+    .latency-row {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .lat-item { }
+    .lat-item .lat-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+    }
+    .lat-item .lat-val {
+      font-family: var(--mono);
+      font-size: 16px;
+      color: var(--text);
+      margin-top: .1rem;
+    }
+
+    /* ── Response text ────────────────────────────────────────────────── */
+    .response-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      margin-bottom: .5rem;
+    }
+    .response-text {
+      white-space: pre-wrap;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.1rem;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    /* ── Error card ───────────────────────────────────────────────────── */
+    .error-card {
+      background: var(--err-bg);
+      border: 1px solid var(--err-border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+    }
+    .error-card .err-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--err-text);
+      margin-bottom: .4rem;
+    }
+    .error-card .err-msg {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--err-text);
+      white-space: pre-wrap;
+    }
+
+    /* ── Fail-safe banner ─────────────────────────────────────────────── */
+    .failsafe-banner {
+      background: #1f1200;
+      border: 1px solid #7a3f00;
+      color: #f59e0b;
+      border-radius: 6px;
+      padding: .55rem .9rem;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: .85rem;
+    }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 1.1rem 0; }
+
+    /* ── Tooltip hint for scores ──────────────────────────────────────── */
+    .hint { font-size: 11px; color: var(--muted); margin-top: .25rem; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1>⚡ Cascade Router — Test UI</h1>
+    <p>Submit a prompt to see the routing decision (G1 + G2 scores) and the actual generated response.</p>
+  </header>
+
+  <!-- Input card -->
+  <div class="card">
+    <label for="promptInput">Prompt</label>
+    <textarea id="promptInput" placeholder="Type your prompt here — try something simple ('What is 2+2?') or complex ('Design a distributed rate-limiter handling 100k rps...')" rows="5"></textarea>
+    <div class="actions">
+      <button id="submitBtn" onclick="submit()">Submit</button>
+      <button class="btn-clear" onclick="clearAll()">Clear</button>
+      <div class="spinner" id="spinner"></div>
+      <span class="status-text" id="statusText">Routing &amp; generating…</span>
+    </div>
+  </div>
+
+  <!-- Results panel -->
+  <div id="results">
+    <!-- Error block (shown only on error) -->
+    <div id="errorBlock" style="display:none" class="card">
+      <div class="error-card">
+        <div class="err-label">Error</div>
+        <div class="err-msg" id="errorMsg"></div>
+      </div>
+    </div>
+
+    <!-- Success block -->
+    <div id="successBlock" style="display:none">
+
+      <!-- Fail-safe warning -->
+      <div class="failsafe-banner" id="failsafeBanner" style="display:none">
+        ⚠ Fail-safe triggered — a router call failed or timed out. The router escalated to protect response quality.
+      </div>
+
+      <!-- Tier + model -->
+      <div class="card">
+        <div class="tier-header">
+          <div class="tier-badge" id="tierBadge">
+            <span class="dot"></span>
+            <span id="tierText">Tier ?</span>
+          </div>
+          <code class="model-chip" id="modelChip">model</code>
+        </div>
+
+        <!-- Gatekeeper scores grid -->
+        <div class="routing-grid">
+          <!-- G1 -->
+          <div class="gate-cell">
+            <div class="gate-label">Gatekeeper 1</div>
+            <div class="score-row">
+              <span class="score-val" id="g1Score">—</span>
+              <span class="score-threshold" id="g1Threshold"></span>
+            </div>
+            <div class="decision-chip" id="g1Decision"></div>
+            <div class="hint">Score vs threshold → route or escalate</div>
+          </div>
+          <!-- G2 -->
+          <div class="gate-cell">
+            <div class="gate-label">Gatekeeper 2</div>
+            <div class="score-row">
+              <span class="score-val" id="g2Score">—</span>
+              <span class="score-threshold" id="g2Threshold"></span>
+            </div>
+            <div class="decision-chip" id="g2Decision"></div>
+            <div class="hint" id="g2Hint">Only invoked when G1 escalates</div>
+          </div>
+        </div>
+
+        <!-- Latency -->
+        <hr>
+        <div class="latency-row">
+          <div class="lat-item">
+            <div class="lat-label">Routing latency</div>
+            <div class="lat-val" id="routingLat">—</div>
+          </div>
+          <div class="lat-item">
+            <div class="lat-label">Generation latency</div>
+            <div class="lat-val" id="genLat">—</div>
+          </div>
+          <div class="lat-item">
+            <div class="lat-label">Total</div>
+            <div class="lat-val" id="totalLat">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Response text -->
+      <div class="card" id="responseCard" style="display:none">
+        <div class="response-label">Generated response</div>
+        <div class="response-text" id="responseText"></div>
+      </div>
+
+      <!-- Generation error (when routing succeeded but generation failed) -->
+      <div class="card" id="genErrorCard" style="display:none">
+        <div class="error-card">
+          <div class="err-label">Generation Error</div>
+          <div class="err-msg" id="genErrorMsg"></div>
+        </div>
+      </div>
+
+    </div><!-- /successBlock -->
+  </div><!-- /results -->
+
+</div><!-- /page -->
+
+<script>
+const API_URL = "http://127.0.0.1:8765/route-and-generate";
+
+function $ (id) { return document.getElementById(id); }
+
+async function submit() {
+  const prompt = $("promptInput").value.trim();
+  if (!prompt) { $("promptInput").focus(); return; }
+
+  setLoading(true);
+  clearResults();
+
+  let data;
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    });
+    data = await res.json();
+    if (!res.ok && !data.final_tier) {
+      // Pure HTTP error with no routing payload
+      showError(data.error || `HTTP ${res.status}`);
+      return;
+    }
+  } catch (err) {
+    showError(
+      `Could not reach the backend at ${API_URL}.\n` +
+      `Make sure the server is running:\n  python server.py\n\nDetail: ${err.message}`
+    );
+    return;
+  } finally {
+    setLoading(false);
+  }
+
+  renderResult(data);
+}
+
+function renderResult(d) {
+  $("results").classList.add("visible");
+  $("errorBlock").style.display   = "none";
+  $("successBlock").style.display = "block";
+
+  // ── Fail-safe banner ──────────────────────────────────────────────
+  $("failsafeBanner").style.display = d.fail_safe_triggered ? "block" : "none";
+
+  // ── Tier badge ────────────────────────────────────────────────────
+  const badge = $("tierBadge");
+  badge.className = "tier-badge";
+  const tierNum = d.final_tier === "tier_1" ? 1 : d.final_tier === "tier_2" ? 2 : 3;
+  badge.classList.add("tier" + tierNum);
+  $("tierText").textContent = `Tier ${tierNum} — ${d.tier_label}`;
+  $("modelChip").textContent = d.model_used;
+
+  // ── G1 ────────────────────────────────────────────────────────────
+  const g1s = d.g1_score !== null ? d.g1_score.toFixed(4) : "—";
+  $("g1Score").textContent = g1s;
+  $("g1Threshold").textContent = `threshold: ${d.g1_threshold.toFixed(5)}`;
+
+  const g1Passed = d.g1_score !== null && d.g1_score >= d.g1_threshold;
+  const g1Chip   = $("g1Decision");
+  if (d.g1_score === null) {
+    g1Chip.className = "decision-chip chip-skip";
+    g1Chip.textContent = "error / fail-safe";
+  } else if (g1Passed) {
+    g1Chip.className = "decision-chip chip-pass";
+    g1Chip.textContent = `${g1s} ≥ ${d.g1_threshold.toFixed(5)} → escalated`;
+  } else {
+    g1Chip.className = "decision-chip chip-stop";
+    g1Chip.textContent = `${g1s} < ${d.g1_threshold.toFixed(5)} → Tier 1 (stop)`;
+  }
+
+  // ── G2 ────────────────────────────────────────────────────────────
+  const g2Fired = d.gatekeepers_fired.includes("gatekeeper_2");
+  const g2s     = d.g2_score !== null ? d.g2_score.toFixed(4) : null;
+  const g2Cell  = $("g2Score");
+  const g2Chip  = $("g2Decision");
+  const g2Hint  = $("g2Hint");
+  $("g2Threshold").textContent = g2Fired ? `threshold: ${d.g2_threshold.toFixed(5)}` : "";
+
+  if (!g2Fired) {
+    g2Cell.textContent = "—";
+    g2Chip.className   = "decision-chip chip-skip";
+    g2Chip.textContent = "not invoked";
+    g2Hint.textContent = "G1 stopped at Tier 1 — G2 was short-circuited";
+  } else if (d.g2_score === null) {
+    g2Cell.textContent = "—";
+    g2Chip.className   = "decision-chip chip-skip";
+    g2Chip.textContent = "error / fail-safe";
+    g2Hint.textContent = "";
+  } else {
+    const g2Passed     = d.g2_score >= d.g2_threshold;
+    g2Cell.textContent = g2s;
+    if (g2Passed) {
+      g2Chip.className   = "decision-chip chip-pass";
+      g2Chip.textContent = `${g2s} ≥ ${d.g2_threshold.toFixed(5)} → Tier 3`;
+    } else {
+      g2Chip.className   = "decision-chip chip-stop";
+      g2Chip.textContent = `${g2s} < ${d.g2_threshold.toFixed(5)} → Tier 2 (stop)`;
+    }
+    g2Hint.textContent = "G1 escalated — G2 made the Tier 2 vs Tier 3 decision";
+  }
+
+  // ── Latency ───────────────────────────────────────────────────────
+  $("routingLat").textContent = `${d.routing_latency_ms} ms`;
+  $("genLat").textContent     = `${d.generation_latency_ms} ms`;
+  $("totalLat").textContent   = `${(d.routing_latency_ms + d.generation_latency_ms).toFixed(1)} ms`;
+
+  // ── Response text / generation error ─────────────────────────────
+  if (d.response_text) {
+    $("responseCard").style.display = "block";
+    $("responseText").textContent   = d.response_text;
+    $("genErrorCard").style.display = "none";
+  } else if (d.error) {
+    $("responseCard").style.display  = "none";
+    $("genErrorCard").style.display  = "block";
+    $("genErrorMsg").textContent     = d.error;
+  } else {
+    $("responseCard").style.display  = "none";
+    $("genErrorCard").style.display  = "none";
+  }
+}
+
+function showError(msg) {
+  $("results").classList.add("visible");
+  $("errorBlock").style.display   = "block";
+  $("successBlock").style.display = "none";
+  $("errorMsg").textContent = msg;
+}
+
+function setLoading(on) {
+  $("submitBtn").disabled      = on;
+  $("spinner").classList.toggle("active", on);
+  $("statusText").classList.toggle("active", on);
+}
+
+function clearResults() {
+  $("results").classList.remove("visible");
+  $("errorBlock").style.display   = "none";
+  $("successBlock").style.display = "none";
+}
+
+function clearAll() {
+  $("promptInput").value = "";
+  clearResults();
+  $("promptInput").focus();
+}
+
+// Submit on Ctrl+Enter / Cmd+Enter
+$("promptInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit(); }
+});
+</script>
+</body>
+</html>
