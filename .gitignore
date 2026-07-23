@@ -12,6 +12,9 @@ __pycache__/
 .env
 .env.*
 
+# Vercel frontend config (points frontend at EC2 backend — set per-deployment, never committed)
+frontend/backend_url.js
+
 # Application Logs (telemetry outputs)
 logs/
 *.log

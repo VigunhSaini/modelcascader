@@ -234,21 +234,26 @@ def _handle_route_and_generate(prompt: str) -> dict:
 def _friendly_error(exc: Exception, tier_cfg) -> str:
     """Turn provider exceptions into human-readable messages that name the missing key."""
     msg = str(exc)
-    # OpenAI auth errors
-    if "api_key" in msg.lower() or "authentication" in msg.lower() or "401" in msg:
+    provider = tier_cfg.provider
+
+    KEY_NAMES = {
+        "openai":    "OPENAI_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "groq":      "GROQ_API_KEY",
+        "google":    "GEMINI_API_KEY (note: GOOGLE_API_KEY takes precedence if also set)",
+    }
+
+    # Auth / missing key errors
+    auth_signals = ("api_key", "authentication", "401", "x-api-key",
+                    "invalid api key", "api_key_missing", "unauthenticated")
+    if any(s in msg.lower() for s in auth_signals):
+        key_hint = KEY_NAMES.get(provider, f"the API key for '{provider}'")
         return (
-            f"Authentication failed for provider '{tier_cfg.provider}' "
+            f"Authentication failed for provider '{provider}' "
             f"(model: {tier_cfg.model}). "
-            f"Set the {'OPENAI_API_KEY' if tier_cfg.provider == 'openai' else 'ANTHROPIC_API_KEY'} "
-            "environment variable to a valid API key."
+            f"Set {key_hint} in your environment."
         )
-    # Anthropic auth
-    if "x-api-key" in msg.lower() or "invalid api key" in msg.lower():
-        return (
-            f"Authentication failed for Anthropic (model: {tier_cfg.model}). "
-            "Set the ANTHROPIC_API_KEY environment variable."
-        )
-    return f"Generation failed ({tier_cfg.provider}/{tier_cfg.model}): {msg}"
+    return f"Generation failed ({provider}/{tier_cfg.model}): {msg}"
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -256,7 +261,12 @@ def _friendly_error(exc: Exception, tier_cfg) -> str:
 def main():
     parser = argparse.ArgumentParser(description="Cascade Router local test server")
     parser.add_argument("--port", type=int, default=8765, help="Port to listen on (default: 8765)")
-    parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Host to bind to (default: 0.0.0.0 — listens on all interfaces). "
+             "Use 127.0.0.1 to restrict to localhost only.",
+    )
     args = parser.parse_args()
 
     _init_router()
