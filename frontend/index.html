@@ -430,14 +430,12 @@
 
 </div><!-- /page -->
 
-<!-- backend_url.js is loaded first when hosted on Vercel.
-     It must define: window.BACKEND_URL = "http://<your-ec2-ip>:8765";
-     When running locally this file won't exist and is silently ignored. -->
-<script src="backend_url.js" onerror="void(0)"></script>
+<!-- API base: on localhost hits server.py directly; on Vercel goes via /api rewrite proxy -->
 <script>
-// If backend_url.js defined window.BACKEND_URL, use it.
-// Otherwise fall back to same-origin localhost (local dev mode).
-const API_URL = (window.BACKEND_URL || "http://127.0.0.1:8765") + "/route-and-generate";
+const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  ? 'http://127.0.0.1:8765'
+  : '/api';
+const API_URL = API_BASE + '/route-and-generate';
 
 function $ (id) { return document.getElementById(id); }
 
