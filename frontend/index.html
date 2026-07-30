@@ -433,8 +433,8 @@
 <!-- API base: on localhost hits server.py directly; on Vercel goes via /api rewrite proxy -->
 <script>
 const API_BASE = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-  ? 'http://127.0.0.1:8765'
-  : '/api';
+  ? 'http://16.170.232.254:8765' // Direct to AWS backend when testing locally
+  : '/api'; // Use Vercel proxy when deployed (to avoid Mixed Content HTTPS errors)
 const API_URL = API_BASE + '/route-and-generate';
 
 function $ (id) { return document.getElementById(id); }
